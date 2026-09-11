@@ -2,9 +2,11 @@ name: Football Bot
 
 on:
   schedule:
-    - cron: '0 13 * * *'
-    - cron: '0 18 * * *'
-    - cron: '0 23 * * *'
+    - cron: '0 6 * * *'    # 7 AM WAT / 1 AM EST
+    - cron: '0 10 * * *'   # 11 AM WAT / 5 AM EST
+    - cron: '0 14 * * *'   # 3 PM WAT / 9 AM EST
+    - cron: '0 18 * * *'   # 7 PM WAT / 1 PM EST
+    - cron: '0 22 * * *'   # 11 PM WAT / 5 PM EST
   workflow_dispatch:
 
 jobs:
