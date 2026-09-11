@@ -22,12 +22,17 @@ RSS_FEEDS = [
 
 def get_topic():
     hour = datetime.utcnow().hour
-    if hour < 12:
+    # 5 slots, rotating topics
+    if hour < 8:
         return "Player Spotlight"
-    elif hour < 18:
+    elif hour < 12:
         return "Transfer News"
+    elif hour < 16:
+        return "Club Focus"
+    elif hour < 20:
+        return "Scandal & Drama"
     else:
-        return "Match Recap"
+        return "Match Preview"
 
 def fetch_news():
     items = []
@@ -73,10 +78,12 @@ Keep it under 150 words.
 
 def get_image(topic):
     query = {
-        "Player Spotlight": "football player celebrating goal",
-        "Transfer News": "football transfer signing contract",
-        "Match Recap": "football stadium match action",
-    }.get(topic, "football soccer")
+    "Player Spotlight": "football player celebrating goal",
+    "Transfer News": "football transfer signing contract",
+    "Club Focus": "football club stadium fans",
+    "Scandal & Drama": "football referee controversy",
+    "Match Preview": "football stadium night match",
+}.get(topic, "football soccer")
 
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
