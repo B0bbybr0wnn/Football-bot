@@ -39,7 +39,7 @@ def fetch_news():
     return "\n".join(items[:8]) if items else "No recent news available."
 
 def write_post(topic, news):
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-3.5-flash")
     prompt = f"""
 You are writing a Telegram post for a football/soccer channel.
 
