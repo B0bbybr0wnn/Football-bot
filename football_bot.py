@@ -63,16 +63,18 @@ def get_topic():
     hour = datetime.utcnow().hour
     if hour < 6:
         return "Player Spotlight"
-    elif hour < 10:
+    elif hour < 9:
         return "Transfer News"
-    elif hour < 14:
+    elif hour < 12:
         return "Club Focus"
-    elif hour < 18:
+    elif hour < 15:
         return "Scandal & Drama"
-    elif hour < 22:
+    elif hour < 18:
         return "Match Preview"
-    else:
+    elif hour < 21:
         return "Match Recap"
+    else:
+        return "Player Spotlight"  # repeats — biggest crowd pleaser
 
 def fetch_fixtures():
     headers = {"X-Auth-Token": FOOTBALL_DATA_KEY}
