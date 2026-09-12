@@ -18,6 +18,31 @@ FOOTBALL_DATA_KEY = os.environ["FOOTBALL_DATA_KEY"]
 
 genai.configure(api_key=GEMINI_API_KEY)
 
+def generate_reaction(post_text):
+    """Generate a short comment-bait reaction to the main post."""
+    model = genai.GenerativeModel("gemini-3.6-flash")
+    prompt = f"""You just read this football post on a Telegram channel:
+
+{post_text[:800]}
+
+Write ONE short casual reaction sentence that:
+- Sounds like a real football fan, not a bot
+- Picks one specific thing from the post to react to
+- Ends with a question OR a hot take that makes people want to reply
+- Max 15 words
+- Max 2 emojis
+- No hashtags
+- No "What do you think?" generic shit
+- Sound human, opinionated, a bit funny
+
+Just write the sentence. Nothing else."""
+    try:
+        return model.generate_content(prompt).text.strip()
+    except Exception as e:
+        print(f"Reaction error: {e}")
+        return None
+        
+
 RSS_FEEDS = [
     "https://feeds.bbci.co.uk/sport/football/rss.xml",
     "https://www.espn.com/espn/rss/soccer/news",
@@ -419,6 +444,20 @@ if __name__ == "__main__":
     # Only track recaps for auto-delete
     should_track = (topic == "Match Recap")
     send_telegram(img, post, track=should_track)
+
+    
+# Send reaction after 30s
+import time as _time
+_time.sleep(30)
+reaction = generate_reaction(post)
+if reaction:
+    base = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+    requests.post(f"{base}/sendMessage", data={
+        "chat_id": CHAT_ID,
+        "text": reaction,
+    }, timeout=20)
+    print(f"Reaction sent: {reaction}")
+    
 
     if source_link:
         posted["links"].add(source_link)
