@@ -1,0 +1,37 @@
+name: Live Scores
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'    # every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install requests google-generativeai
+
+      - run: python live_scores.py
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Save live match state
+        run: |
+          git config user.name "Football Bot"
+          git config user.email "bot@football.local"
+          git add live_matches.json || true
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update live state [skip ci]"
+          git push || true
