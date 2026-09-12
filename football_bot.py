@@ -8,12 +8,12 @@ import os
 import time
 
 # ====== FILL THESE IN ======
-TELEGRAM_TOKEN = "8632190175:AAETnurIp5CPEISN5mJLcYMQw94TY_-9VxQ"
-CHAT_ID = "-1003852610001"
-GEMINI_API_KEY = "AQ.Ab8RN6INzzKf-iKpk8CFiY_6QQyyCs-diCHx-MbRimVqZw477w"
-GOOGLE_API_KEY = "AIzaSyAG0yjPU5PWXTHYkw1QQSnTcsX60rb3pXQ"
-GOOGLE_CSE_ID = "013036536707430787589:_pqjad5hr1a"
-FOOTBALL_DATA_KEY = "afc1741c21a04ee69faf74902dce20c8"
+TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+GOOGLE_API_KEY = os.environ["GOOGLE_API_KEY"]
+GOOGLE_CSE_ID = os.environ["GOOGLE_CSE_ID"]
+FOOTBALL_DATA_KEY = os.environ["FOOTBALL_DATA_KEY"]
 # ===========================
 
 genai.configure(api_key=GEMINI_API_KEY)
