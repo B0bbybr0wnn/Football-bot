@@ -15,6 +15,32 @@ GOOGLE_CSE_ID = os.environ["GOOGLE_CSE_ID"]
 
 genai.configure(api_key=GEMINI_API_KEY)
 
+
+def generate_reaction(post_text):
+    """Generate a short comment-bait reaction to the announcement."""
+    model = genai.GenerativeModel("gemini-3.6-flash")
+    prompt = f"""You just read this football match announcement post on a Telegram channel:
+
+{post_text[:800]}
+
+Write ONE short casual reaction sentence that:
+- Sounds like a real football fan, not a bot
+- Picks one specific match from the list to react to
+- Ends with a question OR a hot take that makes people want to reply
+- Max 15 words
+- Max 2 emojis
+- No hashtags
+- No "What do you think?" generic shit
+- Sound human, opinionated, a bit funny
+
+Just write the sentence. Nothing else."""
+    try:
+        return model.generate_content(prompt).text.strip()
+    except Exception as e:
+        print(f"Reaction error: {e}")
+        return None
+        
+
 ANNOUNCED_2DAYS = "announced_2days.json"
 ANNOUNCED_TOMORROW = "announced_tomorrow.json"
 
@@ -207,6 +233,19 @@ def main():
         img = get_image()
         send_telegram(img, post)
 
+        
+        import time as _time
+        _time.sleep(30)
+        reaction = generate_reaction(post)
+        if reaction:
+            base = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+            requests.post(f"{base}/sendMessage", data={
+                "chat_id": CHAT_ID,
+                "text": reaction,
+            }, timeout=20)
+            print(f"Reaction sent: {reaction}")
+    
+
         for m in selected:
             announced_ids.add(m["id"])
         save_json(ANNOUNCED_2DAYS, {"matches": list(announced_ids)})
@@ -231,6 +270,18 @@ def main():
         post = generate_post(selected, "tomorrow")
         img = get_image()
         send_telegram(img, post)
+        
+        import time as _time
+        _time.sleep(30)
+        reaction = generate_reaction(post)
+        if reaction:
+            base = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+            requests.post(f"{base}/sendMessage", data={
+                "chat_id": CHAT_ID,
+                "text": reaction,
+            }, timeout=20)
+            print(f"Reaction sent: {reaction}")
+    
 
         for m in selected:
             announced_ids.add(m["id"])
