@@ -2,13 +2,14 @@ name: Football Bot
 
 on:
   schedule:
-    - cron: '0 5 * * *'    # 6 AM WAT / 1 AM EST
-    - cron: '0 8 * * *'    # 9 AM WAT / 4 AM EST
-    - cron: '0 11 * * *'   # 12 PM WAT / 7 AM EST
-    - cron: '0 14 * * *'   # 3 PM WAT / 9 AM EST
-    - cron: '0 17 * * *'   # 6 PM WAT / 1 PM EST
-    - cron: '0 20 * * *'   # 9 PM WAT / 4 PM EST
-    - cron: '0 23 * * *'   # 2 AM WAT / 9 PM EST
+    - cron: '0 5 * * *'    # 6 AM WAT  - Player Spotlight
+    - cron: '0 7 * * *'    # 8 AM WAT  - Transfer News
+    - cron: '0 9 * * *'    # 10 AM WAT - Club Focus
+    - cron: '0 11 * * *'   # 12 PM WAT - Scandal & Drama
+    - cron: '0 14 * * *'   # 3 PM WAT  - Match Preview
+    - cron: '0 17 * * *'   # 6 PM WAT  - Match Recap (auto-deletes after 48h)
+    - cron: '0 20 * * *'   # 9 PM WAT  - Player Spotlight
+    - cron: '0 23 * * *'   # 2 AM WAT  - Transfer News
   workflow_dispatch:
 
 jobs:
@@ -30,10 +31,10 @@ jobs:
 
       - run: python football_bot.py
 
-      - name: Save posted list back to repo
+      - name: Save state files
         run: |
           git config user.name "Football Bot"
           git config user.email "bot@football.local"
-          git add posted.json || true
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update posted list [skip ci]"
+          git add posted.json live_messages.json || true
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update state [skip ci]"
           git push || true
