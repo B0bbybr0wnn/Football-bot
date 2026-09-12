@@ -7,7 +7,7 @@ on:
     - cron: '0 9 * * *'    # 10 AM WAT - Club Focus
     - cron: '0 11 * * *'   # 12 PM WAT - Scandal & Drama
     - cron: '0 14 * * *'   # 3 PM WAT  - Match Preview
-    - cron: '0 17 * * *'   # 6 PM WAT  - Match Recap (auto-deletes after 48h)
+    - cron: '0 17 * * *'   # 6 PM WAT  - Match Recap
     - cron: '0 20 * * *'   # 9 PM WAT  - Player Spotlight
     - cron: '0 23 * * *'   # 2 AM WAT  - Transfer News
   workflow_dispatch:
@@ -30,6 +30,13 @@ jobs:
       - run: pip install requests feedparser google-generativeai
 
       - run: python football_bot.py
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
 
       - name: Save state files
         run: |
