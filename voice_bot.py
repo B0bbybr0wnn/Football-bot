@@ -2,9 +2,11 @@ import os
 import asyncio
 import edge_tts
 import requests
+import feedparser
 import google.generativeai as genai
 from datetime import datetime
 import json
+import random
 
 # ====== CONFIG FROM SECRETS ======
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
@@ -24,78 +26,98 @@ VOICE = VOICES["male_uk"]
 
 STATE_FILE = "voice_state.json"
 
+RSS_FEEDS = [
+    "https://feeds.bbci.co.uk/sport/football/rss.xml",
+    "https://www.espn.com/espn/rss/soccer/news",
+    "https://www.skysports.com/rss/11095",
+    "https://www.goal.com/feeds/en/news",
+    "https://www.theguardian.com/football/rss",
+]
+
+STARS = [
+    "messi", "ronaldo", "mbappe", "haaland", "vinicius", "bellingham",
+    "salah", "kane", "de bruyne", "modric", "neymar", "lewandowski",
+    "saka", "foden", "rodri", "yamal", "pedri", "mainoo", "rashford",
+    "grealish", "bruno fernandes", "odegaard", "rice", "palmer",
+    "osimhen", "victor osimhen"
+]
+
+CLUBS = [
+    "arsenal", "chelsea", "liverpool", "manchester united", "manchester city",
+    "tottenham", "real madrid", "barcelona", "atletico madrid", "psg",
+    "bayern", "juventus", "inter", "ac milan", "napoli", "newcastle"
+]
+
 def load_state():
     try:
         with open(STATE_FILE, "r") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        return {"last_topic": None}
+        return {"recent_titles": []}
 
 def save_state(state):
     with open(STATE_FILE, "w") as f:
         json.dump(state, f)
 
-def get_slot():
-    hour = datetime.utcnow().hour
-    if hour < 10:
-        return "morning"
-    elif hour < 18:
-        return "transfer"
-    else:
-        return "matchday"
+def fetch_trending():
+    """Pull top football stories right now."""
+    items = []
+    for url in RSS_FEEDS:
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:6]:
+                items.append({
+                    "title": entry.title,
+                    "summary": entry.get("summary", "")[:200],
+                })
+        except Exception as e:
+            print(f"RSS error {url}: {e}")
 
-def generate_script(slot):
+    if not items:
+        return []
+
+    def score(item):
+        text = (item["title"] + " " + item["summary"]).lower()
+        return sum(3 for star in STARS if star in text) + sum(1 for club in CLUBS if club in text)
+
+    items.sort(key=score, reverse=True)
+    return items[:5]
+
+def pick_story(trending, recent_titles):
+    """Pick the hottest story not recently used."""
+    for item in trending:
+        if item["title"] not in recent_titles:
+            return item
+    return trending[0] if trending else None
+
+def generate_script(story):
+    """Gemini writes a 30-second voice script based on the actual story."""
     model = genai.GenerativeModel("gemini-3.6-flash")
 
-    prompts = {
-        "morning": """You are writing a 30-second morning voice note for a football Telegram channel called Football Buzz.
+    prompt = f"""You are writing a 30-second voice note for a football Telegram channel called Football Buzz.
 
-Write it like you're texting your football mate. Casual, confident, slightly cocky.
+THE STORY RIGHT NOW:
+{story['title']}
+{story['summary']}
 
-Format:
-- Start with "Morning Buzz Fam."
-- Mention 2-3 quick football things happening right now (transfer rumor, match tonight, drama)
-- End with "Full details in the channel. Let's banter."
+Write it like you're texting your football mate who just heard this news.
+
+Rules:
+- Start with a short hook (3-6 words) — NOT "Breaking news" or reporter voice
+- Mention the actual story — player names, club, what's happening
+- Add ONE hot take or question that makes people want to reply
+- End with something like "Full details in the channel" OR "Drop your take in the comments"
 - Max 75 words total
-- No hashtags, no emojis in the text (TTS can't read them)
-- No "Breaking news" or reporter voice
+- NO emojis (TTS can't read them)
+- NO hashtags
+- NO "Morning Buzz Fam" or time-based intros
+- Sound opinionated, casual, slightly cocky
+- It should feel like the FIRST time you're telling someone this news
 
-Write ONLY the script. Nothing else.""",
-
-        "transfer": """You are writing a 30-second transfer alert voice note for a football Telegram channel called Football Buzz.
-
-Write it like a mate who just heard a rumour and wants your opinion.
-
-Format:
-- Start with "Buzz Alert."
-- One transfer rumour — player, club, stage of the deal
-- Add your hot take or question
-- End with "What do you think? Drop it in the comments."
-- Max 65 words total
-- No hashtags, no emojis in the text
-- Sound opinionated, not neutral
-
-Write ONLY the script. Nothing else.""",
-
-        "matchday": """You are writing a 30-second matchday hype voice note for a football Telegram channel called Football Buzz.
-
-Write it like you're getting your mates pumped for a big match.
-
-Format:
-- Start with "Matchday."
-- Name the biggest match happening today — two teams
-- Give a prediction with a score
-- Call out one player to watch
-- End with "Who you got? Let's see your predictions."
-- Max 70 words total
-- No hashtags, no emojis in the text
-- Sound confident and hype
-
-Write ONLY the script. Nothing else.""",
-    }
+Write ONLY the script. Nothing else."""
 
     try:
-        return model.generate_content(prompts[slot]).text.strip()
+        return model.generate_content(prompt).text.strip()
     except Exception as e:
         print(f"Gemini error: {e}")
         return None
@@ -120,10 +142,19 @@ def send_voice(ogg_path, caption=""):
 
 def main():
     state = load_state()
-    slot = get_slot()
-    print(f"Slot: {slot}")
+    recent = state.get("recent_titles", [])[-20:]
 
-    script = generate_script(slot)
+    trending = fetch_trending()
+    print(f"Trending stories found: {len(trending)}")
+
+    if not trending:
+        print("No news available. Exiting.")
+        return
+
+    story = pick_story(trending, recent)
+    print(f"Picked story: {story['title']}")
+
+    script = generate_script(story)
     if not script:
         print("No script generated.")
         return
@@ -137,7 +168,7 @@ def main():
     asyncio.run(text_to_speech(script, mp3_path))
     convert_to_ogg(mp3_path, ogg_path)
 
-    ok, resp = send_voice(ogg_path, caption="🎙️ Voice update")
+    ok, resp = send_voice(ogg_path, caption="🎙️ Football Buzz")
     print(f"Sent: {ok}")
     if not ok:
         print(f"Error: {resp}")
@@ -146,7 +177,8 @@ def main():
         if os.path.exists(f):
             os.remove(f)
 
-    save_state({"last_topic": slot})
+    recent.append(story["title"])
+    save_state({"recent_titles": recent[-20:]})
 
 if __name__ == "__main__":
     main()
