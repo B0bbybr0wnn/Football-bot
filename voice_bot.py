@@ -22,7 +22,7 @@ VOICES = {
     "male_us": "en-US-GuyNeural",
     "female_us": "en-US-AriaNeural",
 }
-VOICE = VOICES["male_uk"]
+VOICE = VOICES["male_us"]
 RATE = "+10%"
 
 STATE_FILE = "voice_state.json"
