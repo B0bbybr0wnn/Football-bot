@@ -2,9 +2,10 @@ name: Voice Bot
 
 on:
   schedule:
-    - cron: '0 8 * * *'      # 9 AM WAT — Morning Buzz
-    - cron: '0 14 * * *'     # 3 PM WAT — Transfer Alert
-    - cron: '0 17 * * *'     # 6 PM WAT — Matchday hype
+    - cron: '0 8 * * *'      # 9 AM WAT  — Morning take
+    - cron: '0 12 * * *'     # 1 PM WAT  — Transfer reaction
+    - cron: '0 17 * * *'     # 6 PM WAT  — Matchday hype
+    - cron: '0 21 * * *'     # 10 PM WAT — Post-match take
   workflow_dispatch:
 
 jobs:
