@@ -23,6 +23,7 @@ VOICES = {
     "female_us": "en-US-AriaNeural",
 }
 VOICE = VOICES["male_uk"]
+RATE = "+15%"
 
 STATE_FILE = "voice_state.json"
 
@@ -59,7 +60,6 @@ def save_state(state):
         json.dump(state, f)
 
 def get_slot():
-    """Which of the 4 voice types based on UTC hour."""
     hour = datetime.utcnow().hour
     if hour < 10:
         return "morning_take"
@@ -100,7 +100,6 @@ def pick_story(trending, recent_titles):
     return trending[0] if trending else None
 
 def generate_script(slot, story):
-    """Gemini writes a hot take — NOT a news recap."""
     model = genai.GenerativeModel("gemini-3.6-flash")
 
     prompts = {
@@ -116,15 +115,12 @@ Rules:
 - Start with a raw reaction — "Bro...", "Yo...", "Wait...", "This is mad..." or similar
 - Do NOT explain the news. Assume listeners already saw the text post.
 - Instead, give your HOT TAKE. Your opinion. Your angle.
-- Ask listeners ONE question at the end (ex: "Am I wrong?" or "Who else saw this coming?")
+- Ask listeners ONE question at the end
 - Max 70 words
 - NO emojis (TTS can't read them)
 - NO "Breaking news", "In a shocking turn", or reporter voice
 - Sound like a fan ranting to mates
 - Slightly cocky, opinionated, casual
-
-Example style (do NOT copy this, just vibe):
-"Bro, Chelsea bidding 80 million for a guy with one good season? That's either genius or robbery. I'm leaning robbery. Who else is tired of these inflated prices?"
 
 Write ONLY the script. Nothing else.""",
 
@@ -197,7 +193,7 @@ Write ONLY the script. Nothing else.""",
         return None
 
 async def text_to_speech(text, output_mp3):
-    communicate = edge_tts.Communicate(text, VOICE)
+    communicate = edge_tts.Communicate(text, VOICE, rate=RATE)
     await communicate.save(output_mp3)
 
 def convert_to_ogg(mp3_path, ogg_path):
