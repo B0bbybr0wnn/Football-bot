@@ -23,7 +23,7 @@ VOICES = {
     "female_us": "en-US-AriaNeural",
 }
 VOICE = VOICES["male_uk"]
-RATE = "+15%"
+RATE = "+10%"
 
 STATE_FILE = "voice_state.json"
 
