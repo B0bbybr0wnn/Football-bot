@@ -38,8 +38,7 @@ STARS = [
     "messi", "ronaldo", "mbappe", "haaland", "vinicius", "bellingham",
     "salah", "kane", "de bruyne", "modric", "neymar", "lewandowski",
     "saka", "foden", "rodri", "yamal", "pedri", "mainoo", "rashford",
-    "grealish", "bruno fernandes", "odegaard", "rice", "palmer",
-    "osimhen", "victor osimhen"
+    "grealish", "bruno fernandes", "odegaard", "rice", "palmer", "osimhen"
 ]
 
 CLUBS = [
@@ -59,8 +58,19 @@ def save_state(state):
     with open(STATE_FILE, "w") as f:
         json.dump(state, f)
 
+def get_slot():
+    """Which of the 4 voice types based on UTC hour."""
+    hour = datetime.utcnow().hour
+    if hour < 10:
+        return "morning_take"
+    elif hour < 15:
+        return "transfer_reaction"
+    elif hour < 19:
+        return "matchday_hype"
+    else:
+        return "postmatch_take"
+
 def fetch_trending():
-    """Pull top football stories right now."""
     items = []
     for url in RSS_FEEDS:
         try:
@@ -84,40 +94,104 @@ def fetch_trending():
     return items[:5]
 
 def pick_story(trending, recent_titles):
-    """Pick the hottest story not recently used."""
     for item in trending:
         if item["title"] not in recent_titles:
             return item
     return trending[0] if trending else None
 
-def generate_script(story):
-    """Gemini writes a 30-second voice script based on the actual story."""
+def generate_script(slot, story):
+    """Gemini writes a hot take — NOT a news recap."""
     model = genai.GenerativeModel("gemini-3.6-flash")
 
-    prompt = f"""You are writing a 30-second voice note for a football Telegram channel called Football Buzz.
+    prompts = {
+        "morning_take": f"""You are recording a 30-second voice note for a football Telegram channel called Football Buzz.
 
-THE STORY RIGHT NOW:
+THIS JUST HAPPENED IN FOOTBALL:
 {story['title']}
 {story['summary']}
 
-Write it like you're texting your football mate who just heard this news.
+Your job: record your RAW REACTION as a football fan. Not a news report. A reaction.
 
 Rules:
-- Start with a short hook (3-6 words) — NOT "Breaking news" or reporter voice
-- Mention the actual story — player names, club, what's happening
-- Add ONE hot take or question that makes people want to reply
-- End with something like "Full details in the channel" OR "Drop your take in the comments"
-- Max 75 words total
+- Start with a raw reaction — "Bro...", "Yo...", "Wait...", "This is mad..." or similar
+- Do NOT explain the news. Assume listeners already saw the text post.
+- Instead, give your HOT TAKE. Your opinion. Your angle.
+- Ask listeners ONE question at the end (ex: "Am I wrong?" or "Who else saw this coming?")
+- Max 70 words
 - NO emojis (TTS can't read them)
-- NO hashtags
-- NO "Morning Buzz Fam" or time-based intros
-- Sound opinionated, casual, slightly cocky
-- It should feel like the FIRST time you're telling someone this news
+- NO "Breaking news", "In a shocking turn", or reporter voice
+- Sound like a fan ranting to mates
+- Slightly cocky, opinionated, casual
 
-Write ONLY the script. Nothing else."""
+Example style (do NOT copy this, just vibe):
+"Bro, Chelsea bidding 80 million for a guy with one good season? That's either genius or robbery. I'm leaning robbery. Who else is tired of these inflated prices?"
+
+Write ONLY the script. Nothing else.""",
+
+        "transfer_reaction": f"""You are recording a 30-second voice note for a football Telegram channel called Football Buzz.
+
+TRANSFER NEWS RIGHT NOW:
+{story['title']}
+{story['summary']}
+
+Your job: react like a fan who just saw the transfer update. Hot take, not report.
+
+Rules:
+- Start with something reaction-based: "Oh no...", "This is happening...", "Wait wait wait..."
+- Give your OPINION on the move — good deal? Bad deal? Panic buy?
+- Name the player and club like you're telling a mate
+- End with a question like "Do you take this deal?" or "Upgrade or downgrade?"
+- Max 70 words
+- NO emojis
+- NO reporter voice
+- Sound excited, skeptical, or dramatic depending on the deal
+
+Write ONLY the script. Nothing else.""",
+
+        "matchday_hype": f"""You are recording a 30-second voice note for a football Telegram channel called Football Buzz.
+
+BIG MATCH TODAY:
+{story['title']}
+{story['summary']}
+
+Your job: hype your mates for the match. Prediction-style.
+
+Rules:
+- Start with hype — "Matchday.", "Tonight we eat.", "Big one incoming."
+- Name the two teams like you're telling your boys
+- Give YOUR prediction with a score
+- Call out ONE player who decides the game
+- End with "Who you got? Let's see." or "Drop your score."
+- Max 75 words
+- NO emojis
+- NO reporter voice
+- Sound confident, hype, slightly cocky
+
+Write ONLY the script. Nothing else.""",
+
+        "postmatch_take": f"""You are recording a 30-second voice note for a football Telegram channel called Football Buzz.
+
+MATCH RECAP NEWS:
+{story['title']}
+{story['summary']}
+
+Your job: post-match reaction — messy, emotional, honest.
+
+Rules:
+- Start with a reaction: "Nah that was criminal.", "What did I just watch?", "Called it."
+- Give your take on the result — who bottled it, who showed up, who flopped
+- Call out a specific player or moment
+- End with a spicy question or prediction
+- Max 75 words
+- NO emojis
+- NO reporter voice
+- Sound like you just watched the match and have opinions
+
+Write ONLY the script. Nothing else.""",
+    }
 
     try:
-        return model.generate_content(prompt).text.strip()
+        return model.generate_content(prompts[slot]).text.strip()
     except Exception as e:
         print(f"Gemini error: {e}")
         return None
@@ -144,6 +218,9 @@ def main():
     state = load_state()
     recent = state.get("recent_titles", [])[-20:]
 
+    slot = get_slot()
+    print(f"Slot: {slot}")
+
     trending = fetch_trending()
     print(f"Trending stories found: {len(trending)}")
 
@@ -154,7 +231,7 @@ def main():
     story = pick_story(trending, recent)
     print(f"Picked story: {story['title']}")
 
-    script = generate_script(story)
+    script = generate_script(slot, story)
     if not script:
         print("No script generated.")
         return
