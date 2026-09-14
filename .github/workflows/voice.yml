@@ -25,7 +25,7 @@ jobs:
 
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - run: pip install requests google-generativeai edge-tts
+      - run: pip install requests google-generativeai edge-tts feedparser
 
       - run: python voice_bot.py
         env:
